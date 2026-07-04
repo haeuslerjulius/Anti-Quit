@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Anti-Quit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#0B1117; --panel:#121A22; --line:#223140;
+    --osd:#D9E6EE; --dim:#6E8296;
+    --green:#34D07C; --yellow:#F2C230; --red:#FF5257; --ink:#0B1117;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--sky);color:var(--osd)}
+  body{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9;
+    background:repeating-linear-gradient(0deg,rgba(217,230,238,.022) 0 1px,transparent 1px 3px)}
+  .wrap{max-width:440px;margin:0 auto;padding:22px 16px 56px}
+
+  .eyebrow{font-size:10px;letter-spacing:.28em;color:var(--dim);text-transform:uppercase}
+  h1{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:30px;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+  .horizon{display:flex;align-items:center;gap:8px;margin:12px 0 10px;color:var(--dim)}
+  .horizon .ln{flex:1;height:1px;background:var(--line)}
+  .horizon .tick{font-size:11px;line-height:1}
+  .telemetry{display:flex;gap:18px;font-size:11.5px;letter-spacing:.08em;color:var(--dim);flex-wrap:wrap}
+  .telemetry b{color:var(--osd);font-weight:600}
+
+  .banner{margin-top:16px;padding:11px 13px;border-radius:6px;font-size:12.5px;line-height:1.55;
+    border:1px solid var(--line);border-left-width:3px;display:none}
+  .banner.show{display:block}
+  .banner .bt{display:block;font-weight:600;letter-spacing:.1em;font-size:11px;text-transform:uppercase;margin-bottom:2px}
+  .banner.warn{border-left-color:var(--yellow);background:rgba(242,194,48,.08)}
+  .banner.warn .bt{color:var(--yellow)}
+  .banner.crit{border-left-color:var(--red);background:rgba(255,82,87,.08)}
+  .banner.crit .bt{color:var(--red)}
+  .banner.good{border-left-color:var(--green);background:rgba(52,208,124,.08)}
+  .banner.good .bt{color:var(--green)}
+  .banner.err{border-left-color:var(--red);background:rgba(255,82,87,.08)}
+  .banner.err .bt{color:var(--red)}
+
+  .card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 16px;margin-top:16px}
+  .osd-frame::before,.osd-frame::after,.osd-frame .cb::before,.osd-frame .cb::after{
+    content:"";position:absolute;width:14px;height:14px;border-color:var(--osd);border-style:solid;opacity:.55}
+  .osd-frame::before{top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:8px 0 0 0}
+  .osd-frame::after{top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 8px 0 0}
+  .osd-frame .cb::before{bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 8px}
+  .osd-frame .cb::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 8px 0}
+
+  .cardlabel{font-size:10px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+  .datename{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
+
+  .status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
+  .sbtn{background:transparent;border:1px solid var(--line);border-radius:7px;padding:20px 4px 17px;cursor:pointer;
+    text-align:center;color:var(--dim);transition:border-color .12s,background .12s,color .12s}
+  .sbtn .big{display:block;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:28px;line-height:1}
+  .sbtn .sub{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:7px}
+  .sbtn.g .big{color:var(--green)} .sbtn.y .big{color:var(--yellow)} .sbtn.r .big{color:var(--red)}
+  .sbtn.g.on{border-color:var(--green);background:rgba(52,208,124,.14);color:var(--osd)}
+  .sbtn.y.on{border-color:var(--yellow);background:rgba(242,194,48,.14);color:var(--osd)}
+  .sbtn.r.on{border-color:var(--red);background:rgba(255,82,87,.14);color:var(--osd)}
+
+  .weekdays,.weekcells{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .weekdays{margin-top:12px}
+  .weekdays span{font-size:9.5px;letter-spacing:.1em;color:var(--dim);text-align:center;text-transform:uppercase}
+  .weekcells{margin-top:6px}
+  .cell{height:36px;border-radius:5px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:var(--dim)}
+  .cell.G{background:var(--green);border-color:var(--green);color:var(--ink)}
+  .cell.Y{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+  .cell.R{background:var(--red);border-color:var(--red);color:var(--ink)}
+  .cell.today{box-shadow:0 0 0 1.5px var(--osd)}
+  .cell.future{border-style:dotted;color:#3A4B5C}
+  .scoreline{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;flex-wrap:wrap;gap:6px}
+  .scoreline .cg{color:var(--green);font-weight:600}
+  .scoreline .cy{color:var(--yellow);font-weight:600}
+  .scoreline .cr{color:var(--red);font-weight:600}
+  .scoreline .tgt{color:var(--dim)}
+  .statuschip{font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px;border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .statuschip.ok{color:var(--green);border-color:rgba(52,208,124,.5)}
+  .statuschip.bad{color:var(--red);border-color:rgba(255,82,87,.5)}
+  .statuschip.hard{color:var(--yellow);border-color:rgba(242,194,48,.5)}
+
+  .ghost{width:100%;margin-top:14px;padding:12px;border-radius:7px;cursor:pointer;background:transparent;
+    border:1px solid var(--line);color:var(--osd);font-family:inherit;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase}
+
+  .hrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:11.5px}
+  .hrow:last-child{border-bottom:0}
+  .hrow .wk{color:var(--dim);width:38px;flex-shrink:0}
+  .minidots{display:flex;gap:3px;flex:1}
+  .md{width:9px;height:9px;border-radius:2px;background:transparent;border:1px solid var(--line)}
+  .md.G{background:var(--green);border-color:var(--green)}
+  .md.Y{background:var(--yellow);border-color:var(--yellow)}
+  .md.R{background:var(--red);border-color:var(--red)}
+  .hrow .hscore{color:var(--dim);white-space:nowrap}
+  .hrow .hmark{width:16px;text-align:right}
+  .hmark.pass{color:var(--green)} .hmark.fail{color:var(--red)}
+  .empty{color:var(--dim);font-size:12px;margin-top:10px}
+
+  footer{margin-top:26px;text-align:center;font-size:10px;letter-spacing:.14em;color:#3A4B5C;text-transform:uppercase;line-height:2}
+  footer button{background:none;border:0;color:#3A4B5C;font:inherit;cursor:pointer;text-decoration:underline;letter-spacing:inherit;text-transform:inherit}
+
+  .splash{padding:80px 0;text-align:center;color:var(--dim);font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+  .hidden{display:none}
+  button:focus-visible{outline:2px solid var(--osd);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Julius OS · Phase 1</div>
+    <h1>Anti-Quit</h1>
+    <div class="horizon" aria-hidden="true"><span class="ln"></span><span class="tick">┼</span><span class="ln"></span></div>
+    <div class="telemetry">
+      <span>DAY <b id="tDay">000</b></span>
+      <span>LOG STREAK <b id="tStreak">0D</b></span>
+      <span>WEEK <b id="tWeek">–</b></span>
+    </div>
+  </header>
+
+  <div id="splash" class="splash">Syncing system…</div>
+
+  <main id="app" class="hidden">
+
+    <div id="banner" class="banner" role="status"><span class="bt" id="bTitle"></span><span id="bText"></span></div>
+
+    <section class="card osd-frame">
+      <span class="cb" aria-hidden="true"></span>
+      <div class="cardlabel" id="logLabel">Tap to log today</div>
+      <div class="datename" id="dateName">–</div>
+      <div class="status-grid">
+        <button class="sbtn g" data-s="G"><span class="big">G</span><span class="sub">Full · ~2h</span></button>
+        <button class="sbtn y" data-s="Y"><span class="big">Y</span><span class="sub">Min · 30m</span></button>
+        <button class="sbtn r" data-s="R"><span class="big">R</span><span class="sub">Nothing</span></button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="cardlabel">This week · <span id="wkRange"></span></div>
+      <div class="weekdays">
+        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+      </div>
+      <div class="weekcells" id="weekCells"></div>
+      <div class="scoreline">
+        <span><span class="cg" id="sG">0G</span> · <span class="cy" id="sY">0Y</span> · <span class="cr" id="sR">0R</span> <span class="tgt">/ target ≥4G ≤1R</span></span>
+        <span class="statuschip" id="wkStatus">–</span>
+      </div>
+      <button class="ghost" id="copyBtn">Copy week review for Claude</button>
+    </section>
+
+    <section class="card">
+      <div class="cardlabel">History</div>
+      <div id="history"></div>
+    </section>
+
+    <footer>
+      Anti-Quit v3 · never two reds · <span id="modeTag">–</span><br>
+      <button id="backupBtn">backup</button> · <button id="restoreBtn">restore</button> · <button id="resetBtn">reset data</button>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY="antiquit-v1";
+  var APP_URL="https://bubbi74.github.io/anti-quit/";
+  var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  var data={logs:{}};
+  var lastSaveOk=true;
+
+  /* ---------- storage adapter: cloud (Claude) -> device (localStorage) -> memory ---------- */
+  var store={
+    mode:"memory",
+    mem:null,
+    init:function(){
+      if(window.storage&&typeof window.storage.get==="function"){this.mode="cloud";return;}
+      try{localStorage.setItem("__aq_t","1");localStorage.removeItem("__aq_t");this.mode="device";}
+      catch(e){this.mode="memory";}
+    },
+    get:async function(){
+      if(this.mode==="cloud"){
+        try{var r=await window.storage.get(KEY,false);return r&&r.value?r.value:null;}
+        catch(e){return null;}
+      }
+      if(this.mode==="device"){
+        try{return localStorage.getItem(KEY);}catch(e){return null;}
+      }
+      return this.mem;
+    },
+    set:async function(v){
+      if(this.mode==="cloud"){
+        try{var r=await window.storage.set(KEY,v,false);if(r)return true;}catch(e){}
+        try{localStorage.setItem(KEY,v);this.mode="device";return true;}
+        catch(e2){this.mem=v;this.mode="memory";return false;}
+      }
+      if(this.mode==="device"){
+        try{localStorage.setItem(KEY,v);return true;}
+        catch(e){this.mem=v;this.mode="memory";return false;}
+      }
+      this.mem=v;return false;
+    },
+    del:async function(){
+      if(this.mode==="cloud"){try{await window.storage.delete(KEY,false);}catch(e){}}
+      try{localStorage.removeItem(KEY);}catch(e){}
+      this.mem=null;
+    }
+  };
+
+  function now(){return new Date();}
+  function key(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function parseK(k){var p=k.split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);}
+  function addD(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+  function monday(d){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x;}
+  function diffDays(a,b){return Math.round((new Date(b).setHours(12)-new Date(a).setHours(12))/864e5);}
+  function isoWeek(d){
+    var x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    var day=(x.getUTCDay()+6)%7;x.setUTCDate(x.getUTCDate()-day+3);
+    var ft=new Date(Date.UTC(x.getUTCFullYear(),0,4));
+    var fd=(ft.getUTCDay()+6)%7;ft.setUTCDate(ft.getUTCDate()-fd+3);
+    return 1+Math.round((x-ft)/(7*864e5));
+  }
+  function fmtShort(d){return String(d.getDate()).padStart(2,"0")+" "+MON[d.getMonth()];}
+
+  async function load(){
+    var raw=await store.get();
+    if(raw){try{data=JSON.parse(raw);if(!data.logs)data.logs={};}catch(e){}}
+  }
+  async function persist(){
+    lastSaveOk=await store.set(JSON.stringify(data));
+    return lastSaveOk;
+  }
+
+  function earliestLog(){
+    var ks=Object.keys(data.logs).sort();
+    return ks.length?parseK(ks[0]):null;
+  }
+  function dayNumber(){
+    var e=earliestLog();
+    if(!e)return 0;
+    return diffDays(e,now())+1;
+  }
+  function logStreak(){
+    var d=now();
+    if(!data.logs[key(d)])d=addD(d,-1);
+    var n=0;
+    while(data.logs[key(d)]){n++;d=addD(d,-1);}
+    return n;
+  }
+  function weekEntries(mon){
+    var arr=[];
+    for(var i=0;i<7;i++){var d=addD(mon,i);arr.push({d:d,k:key(d),log:data.logs[key(d)]||null});}
+    return arr;
+  }
+  function score(entries){
+    var g=0,y=0,r=0;
+    entries.forEach(function(e){if(e.log){if(e.log.s==="G")g++;else if(e.log.s==="Y")y++;else r++;}});
+    return{g:g,y:y,r:r};
+  }
+
+  function $(id){return document.getElementById(id);}
+
+  function setBanner(cls,title,text){
+    var b=$("banner");
+    b.className="banner show "+cls;
+    $("bTitle").textContent=title;
+    $("bText").textContent=text;
+  }
+
+  function render(){
+    var t=now(),tK=key(t),yK=key(addD(t,-1));
+    var tLog=data.logs[tK],yLog=data.logs[yK];
+
+    $("tDay").textContent=String(dayNumber()).padStart(3,"0");
+    $("tStreak").textContent=logStreak()+"D";
+    $("tWeek").textContent="W"+isoWeek(t);
+    $("modeTag").textContent=store.mode==="cloud"?"cloud sync":store.mode==="device"?"saved on this device":"memory only";
+
+    $("banner").className="banner";
+    if(store.mode==="memory"){
+      setBanner("err","No permanent storage here","Logs vanish on reload in this view. Use the installed app: "+APP_URL);
+    }else if(!lastSaveOk){
+      setBanner("err","Save failed","Last log didn't persist. Tap again.");
+    }else if(tLog&&tLog.s==="R"&&yLog&&yLog.s==="R"){
+      setBanner("crit","Two reds in a row","Chain rule broken. Tomorrow is a mandatory yellow — 30 minutes, non-negotiable.");
+    }else if(yLog&&yLog.s==="R"&&!tLog){
+      setBanner("warn","Yesterday was red","Rule 1: never two reds. Today is minimum yellow — one 25-min block.");
+    }else if(yLog&&yLog.s==="R"&&tLog&&tLog.s!=="R"){
+      setBanner("good","Bounce executed","Red → "+(tLog.s==="G"?"green":"yellow")+". That's the system working.");
+    }
+
+    $("dateName").textContent=DOW[t.getDay()]+" "+fmtShort(t);
+    $("logLabel").textContent=tLog?"Logged · tap to change":"Tap to log today";
+
+    document.querySelectorAll(".sbtn").forEach(function(btn){
+      btn.classList.toggle("on",!!tLog&&btn.dataset.s===tLog.s);
+    });
+
+    var mon=monday(t);
+    $("wkRange").textContent=fmtShort(mon)+" – "+fmtShort(addD(mon,6));
+    var entries=weekEntries(mon);
+    var cells=$("weekCells");cells.innerHTML="";
+    entries.forEach(function(e){
+      var c=document.createElement("div");
+      c.className="cell";
+      var isToday=e.k===tK;
+      var isFuture=parseK(e.k)>t&&!isToday;
+      if(e.log){c.classList.add(e.log.s);c.textContent=e.log.s;}
+      else if(isFuture){c.classList.add("future");c.textContent="·";}
+      else{c.textContent="–";}
+      if(isToday)c.classList.add("today");
+      cells.appendChild(c);
+    });
+    var sc=score(entries);
+    $("sG").textContent=sc.g+"G";$("sY").textContent=sc.y+"Y";$("sR").textContent=sc.r+"R";
+    var midnight=new Date(t.getFullYear(),t.getMonth(),t.getDate());
+    var daysLeft=entries.filter(function(e){return !e.log&&parseK(e.k)>=midnight;}).length;
+    var chip=$("wkStatus");chip.className="statuschip";
+    var firstLog=earliestLog();
+    var partialWeek=firstLog&&firstLog>mon;
+    if(sc.r>=2){chip.classList.add("bad");chip.textContent="Red limit broken";}
+    else if(partialWeek){chip.classList.add("ok");chip.textContent="Partial week · full target from Mon";}
+    else if(sc.g+daysLeft<4){chip.classList.add("hard");chip.textContent="4G out of reach — finish strong";}
+    else if(sc.g>=4&&sc.r<=1){chip.classList.add("ok");chip.textContent="Week target hit";}
+    else{chip.classList.add("ok");chip.textContent="On track";}
+
+    renderHistory(mon);
+  }
+
+  function renderHistory(currentMon){
+    var box=$("history");box.innerHTML="";
+    var weeks={};
+    Object.keys(data.logs).forEach(function(k){
+      var m=key(monday(parseK(k)));
+      if(m===key(currentMon))return;
+      weeks[m]=true;
+    });
+    var monKeys=Object.keys(weeks).sort().reverse().slice(0,8);
+    if(!monKeys.length){
+      box.innerHTML='<div class="empty">No completed weeks yet. Week 1 is being written right now.</div>';
+      return;
+    }
+    monKeys.forEach(function(mk){
+      var mon=parseK(mk);
+      var entries=weekEntries(mon);
+      var sc=score(entries);
+      var row=document.createElement("div");row.className="hrow";
+      var dots=entries.map(function(e){return '<span class="md '+(e.log?e.log.s:"")+'"></span>';}).join("");
+      var pass=sc.g>=4&&sc.r<=1;
+      var firstLog=earliestLog();
+      var wasPartial=firstLog&&key(monday(firstLog))===mk&&firstLog>mon;
+      var mark=wasPartial?'<span class="hmark">–</span>':'<span class="hmark '+(pass?"pass":"fail")+'">'+(pass?"✓":"✗")+"</span>";
+      row.innerHTML='<span class="wk">W'+isoWeek(mon)+'</span>'+
+        '<span class="minidots">'+dots+'</span>'+
+        '<span class="hscore">'+sc.g+'G '+sc.y+'Y '+sc.r+'R</span>'+
+        mark;
+      box.appendChild(row);
+    });
+  }
+
+  function buildReview(){
+    var t=now(),mon=monday(t);
+    var entries=weekEntries(mon);
+    var sc=score(entries);
+    var em={G:"🟢",Y:"🟡",R:"🔴"};
+    var out="ANTI-QUIT · W"+isoWeek(t)+" REVIEW ("+fmtShort(mon)+" – "+fmtShort(addD(mon,6))+")\n";
+    entries.forEach(function(e){
+      var d=parseK(e.k);
+      var isFuture=d>t&&e.k!==key(t);
+      out+=DOW[d.getDay()].toUpperCase().slice(0,2)+" "+String(d.getDate()).padStart(2,"0")+": ";
+      out+=e.log?em[e.log.s]:(isFuture?"·":"— not logged");
+      out+="\n";
+    });
+    out+="SCORE: "+sc.g+"G / "+sc.y+"Y / "+sc.r+"R (target ≥4G ≤1R)\n";
+    out+="LOG STREAK: "+logStreak()+"d · DAY "+dayNumber()+"\n";
+    out+="Ready for Sunday review.";
+    return out;
+  }
+  async function toClipboard(txt){
+    try{await navigator.clipboard.writeText(txt);return true;}
+    catch(e){
+      var ta=document.createElement("textarea");
+      ta.value=txt;document.body.appendChild(ta);ta.select();
+      var ok=false;
+      try{ok=document.execCommand("copy");}catch(e2){ok=false;}
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+  function flashBtn(btn,okText,failText,ok,normal){
+    btn.textContent=ok?okText:failText;
+    setTimeout(function(){btn.textContent=normal;},2500);
+  }
+
+  document.querySelectorAll(".sbtn").forEach(function(btn){
+    btn.addEventListener("click",async function(){
+      data.logs[key(now())]={s:btn.dataset.s};
+      await persist();
+      render();
+    });
+  });
+
+  $("copyBtn").addEventListener("click",async function(){
+    var ok=await toClipboard(buildReview());
+    flashBtn($("copyBtn"),"Copied ✓ — paste it in chat","Copy failed — screenshot instead",ok,"Copy week review for Claude");
+  });
+
+  $("backupBtn").addEventListener("click",async function(){
+    var ok=await toClipboard(JSON.stringify(data));
+    flashBtn($("backupBtn"),"copied ✓","copy failed",ok,"backup");
+  });
+
+  $("restoreBtn").addEventListener("click",async function(){
+    var s=prompt("Paste backup JSON:");
+    if(!s)return;
+    try{
+      var p=JSON.parse(s);
+      if(p&&p.logs&&typeof p.logs==="object"){data=p;await persist();render();}
+      else{alert("Invalid backup.");}
+    }catch(e){alert("Invalid backup.");}
+  });
+
+  $("resetBtn").addEventListener("click",async function(){
+    if(!confirm("Delete ALL Anti-Quit data? This can't be undone."))return;
+    if(!confirm("Really sure? Every log will be gone."))return;
+    await store.del();
+    data={logs:{}};
+    render();
+  });
+
+  (async function(){
+    store.init();
+    await load();
+    $("splash").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
