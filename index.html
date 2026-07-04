@@ -121,6 +121,17 @@
   .hmark.pass{color:var(--green)} .hmark.fail{color:var(--red)}
   .empty{color:var(--dim);font-size:12px;margin-top:10px}
 
+  .mapwrap{display:flex;flex-wrap:wrap;gap:16px 18px;margin-top:12px}
+  .mlabel{font-size:9px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase;margin-bottom:5px}
+  .mgrid{display:grid;grid-template-columns:repeat(7,11px);gap:2.5px}
+  .mday{width:11px;height:11px;border-radius:2.5px;background:rgba(34,49,64,.5)}
+  .mday.G{background:var(--green)}
+  .mday.Y{background:var(--yellow)}
+  .mday.R{background:var(--red)}
+  .mday.future{background:rgba(34,49,64,.18)}
+  .mday.void{background:transparent}
+  .mday.today{box-shadow:0 0 0 1.5px var(--osd)}
+
   footer{margin-top:26px;text-align:center;font-size:10px;letter-spacing:.14em;color:#3A4B5C;text-transform:uppercase;line-height:2}
   footer button{background:none;border:0;color:#3A4B5C;font:inherit;cursor:pointer;text-decoration:underline;letter-spacing:inherit;text-transform:inherit}
 
@@ -215,12 +226,17 @@
     </section>
 
     <section class="card">
+      <div class="cardlabel">Day map · one square = one day</div>
+      <div class="mapwrap" id="mapWrap"></div>
+    </section>
+
+    <section class="card">
       <div class="cardlabel">History</div>
       <div id="history"></div>
     </section>
 
     <footer>
-      Anti-Quit v5 · never two reds · <span id="modeTag">–</span><br>
+      Anti-Quit v6 · never two reds · <span id="modeTag">–</span><br>
       <button id="backupBtn">backup</button> · <button id="restoreBtn">restore</button> · <button id="resetBtn">reset data</button>
     </footer>
 
@@ -425,6 +441,7 @@
     else{chip.classList.add("ok");chip.textContent="On track";}
 
     renderHistory(mon);
+    renderMap();
   }
 
   function renderHistory(currentMon){
@@ -457,6 +474,41 @@
         mark;
       box.appendChild(row);
     });
+  }
+
+  function renderMap(){
+    var box=$("mapWrap");box.innerHTML="";
+    var t=now(),tK=key(t);
+    var first=earliestLog()||t;
+    var cur=new Date(first.getFullYear(),first.getMonth(),1);
+    var endM=new Date(t.getFullYear(),t.getMonth(),1);
+    var guard=0;
+    while(cur<=endM&&guard<60){
+      guard++;
+      var block=document.createElement("div");
+      var lab=document.createElement("div");lab.className="mlabel";
+      var yy=(guard===1||cur.getMonth()===0)?" \u2019"+String(cur.getFullYear()).slice(2):"";
+      lab.textContent=MON[cur.getMonth()].toUpperCase()+yy;
+      block.appendChild(lab);
+      var grid=document.createElement("div");grid.className="mgrid";
+      var offset=(new Date(cur.getFullYear(),cur.getMonth(),1).getDay()+6)%7;
+      for(var i=0;i<offset;i++){var v=document.createElement("div");v.className="mday void";grid.appendChild(v);}
+      var dim=new Date(cur.getFullYear(),cur.getMonth()+1,0).getDate();
+      for(var day=1;day<=dim;day++){
+        var d=new Date(cur.getFullYear(),cur.getMonth(),day);
+        var k=key(d);
+        var s=dayS(data.logs[k]);
+        var c=document.createElement("div");c.className="mday";
+        if(s)c.classList.add(s);
+        else if(d>t&&k!==tK)c.classList.add("future");
+        if(k===tK)c.classList.add("today");
+        c.title=k;
+        grid.appendChild(c);
+      }
+      block.appendChild(grid);
+      box.appendChild(block);
+      cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    }
   }
 
   function buildReview(){
