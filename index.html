@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --sky:#0B1117; --panel:#121A22; --line:#223140;
+    --sky:#0B1117; --panel:#121A22; --field:#0E141B; --line:#223140;
     --osd:#D9E6EE; --dim:#6E8296;
     --green:#34D07C; --yellow:#F2C230; --red:#FF5257; --ink:#0B1117;
   }
@@ -55,15 +55,34 @@
   .cardlabel{font-size:10px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
   .datename{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:19px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
 
-  .status-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:16px}
-  .sbtn{background:transparent;border:1px solid var(--line);border-radius:7px;padding:20px 4px 17px;cursor:pointer;
-    text-align:center;color:var(--dim);transition:border-color .12s,background .12s,color .12s}
-  .sbtn .big{display:block;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:28px;line-height:1}
-  .sbtn .sub{display:block;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;margin-top:7px}
-  .sbtn.g .big{color:var(--green)} .sbtn.y .big{color:var(--yellow)} .sbtn.r .big{color:var(--red)}
-  .sbtn.g.on{border-color:var(--green);background:rgba(52,208,124,.14);color:var(--osd)}
-  .sbtn.y.on{border-color:var(--yellow);background:rgba(242,194,48,.14);color:var(--osd)}
-  .sbtn.r.on{border-color:var(--red);background:rgba(255,82,87,.14);color:var(--osd)}
+  .mission{margin-top:12px;padding:10px 12px;border:1px dashed var(--line);border-radius:6px;display:none}
+  .mission.show{display:block}
+  .mission .me{font-size:9px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase}
+  .mission .mt{font-size:13px;color:var(--osd);margin-top:3px;line-height:1.45}
+
+  .prow{display:flex;align-items:center;gap:10px;margin-top:14px}
+  .plabel{flex:1;min-width:0}
+  .plabel .pn{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+  .plabel .ps{font-size:9px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase;margin-top:1px}
+  .segs{display:flex;gap:6px}
+  .seg{width:42px;height:38px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--dim);
+    font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+    transition:border-color .12s,background .12s,color .12s}
+  .seg.g.on{border-color:var(--green);background:rgba(52,208,124,.16);color:var(--green)}
+  .seg.y.on{border-color:var(--yellow);background:rgba(242,194,48,.16);color:var(--yellow)}
+  .seg.r.on{border-color:var(--red);background:rgba(255,82,87,.16);color:var(--red)}
+
+  .daybar{margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:7px;text-align:center;
+    font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  .daybar.G{border-color:var(--green);background:rgba(52,208,124,.12);color:var(--osd)}
+  .daybar.Y{border-color:var(--yellow);background:rgba(242,194,48,.12);color:var(--osd)}
+  .daybar.R{border-color:var(--red);background:rgba(255,82,87,.12);color:var(--osd)}
+
+  .qwrap{margin-top:14px}
+  .qlabel{font-size:9px;letter-spacing:.24em;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
+  input[type=text]{width:100%;background:var(--field);border:1px solid var(--line);border-radius:6px;
+    color:var(--osd);font-family:inherit;font-size:13px;padding:12px}
+  input[type=text]::placeholder{color:var(--dim)}
 
   .weekdays,.weekcells{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
   .weekdays{margin-top:12px}
@@ -107,7 +126,7 @@
 
   .splash{padding:80px 0;text-align:center;color:var(--dim);font-size:11px;letter-spacing:.3em;text-transform:uppercase}
   .hidden{display:none}
-  button:focus-visible{outline:2px solid var(--osd);outline-offset:2px}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--osd);outline-offset:2px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -133,12 +152,52 @@
 
     <section class="card osd-frame">
       <span class="cb" aria-hidden="true"></span>
-      <div class="cardlabel" id="logLabel">Tap to log today</div>
+      <div class="cardlabel">Log today</div>
       <div class="datename" id="dateName">–</div>
-      <div class="status-grid">
-        <button class="sbtn g" data-s="G"><span class="big">G</span><span class="sub">Full · ~2h</span></button>
-        <button class="sbtn y" data-s="Y"><span class="big">Y</span><span class="sub">Min · 30m</span></button>
-        <button class="sbtn r" data-s="R"><span class="big">R</span><span class="sub">Nothing</span></button>
+
+      <div class="mission" id="mission">
+        <div class="me">▸ Today's mission — set last night</div>
+        <div class="mt" id="missionText"></div>
+      </div>
+
+      <div class="prow">
+        <div class="plabel"><div class="pn">Body</div><div class="ps">Train · Move</div></div>
+        <div class="segs" data-p="b">
+          <button class="seg g" data-v="G">G</button>
+          <button class="seg y" data-v="Y">Y</button>
+          <button class="seg r" data-v="R">R</button>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="plabel"><div class="pn">School</div><div class="ps">25-min block</div></div>
+        <div class="segs" data-p="s">
+          <button class="seg g" data-v="G">G</button>
+          <button class="seg y" data-v="Y">Y</button>
+          <button class="seg r" data-v="R">R</button>
+        </div>
+      </div>
+      <div class="prow">
+        <div class="plabel"><div class="pn">Hustle</div><div class="ps">25-min block</div></div>
+        <div class="segs" data-p="h">
+          <button class="seg g" data-v="G">G</button>
+          <button class="seg y" data-v="Y">Y</button>
+          <button class="seg r" data-v="R">R</button>
+        </div>
+      </div>
+
+      <div class="daybar" id="dayBar">Rate your three areas</div>
+
+      <div class="qwrap">
+        <div class="qlabel">Debrief ▸ Win of the day</div>
+        <input type="text" id="wInput" maxlength="120" placeholder="What worked today?">
+      </div>
+      <div class="qwrap">
+        <div class="qlabel">Debrief ▸ What got in the way</div>
+        <input type="text" id="xInput" maxlength="120" placeholder="Biggest blocker or distraction">
+      </div>
+      <div class="qwrap">
+        <div class="qlabel">Debrief ▸ Tomorrow's first move</div>
+        <input type="text" id="qInput" maxlength="120" placeholder="Shows up as tomorrow's mission">
       </div>
     </section>
 
@@ -161,7 +220,7 @@
     </section>
 
     <footer>
-      Anti-Quit v3 · never two reds · <span id="modeTag">–</span><br>
+      Anti-Quit v5 · never two reds · <span id="modeTag">–</span><br>
       <button id="backupBtn">backup</button> · <button id="restoreBtn">restore</button> · <button id="resetBtn">reset data</button>
     </footer>
 
@@ -172,12 +231,14 @@
 (function(){
   "use strict";
   var KEY="antiquit-v1";
-  var APP_URL="https://bubbi74.github.io/anti-quit/";
+  var APP_URL="https://haeuslerjulius.github.io/Anti-Quit/";
   var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var PLS=["b","s","h"];
 
   var data={logs:{}};
   var lastSaveOk=true;
+  var qTimers={};
 
   /* ---------- storage adapter: cloud (Claude) -> device (localStorage) -> memory ---------- */
   var store={
@@ -241,8 +302,25 @@
     return lastSaveOk;
   }
 
+  /* ---------- day status: computed from pillars, falls back to legacy s ---------- */
+  function computeS(p){
+    if(!p)return null;
+    var set=false,pts=0;
+    PLS.forEach(function(k){
+      var v=p[k];
+      if(v){set=true;pts+=v==="G"?2:v==="Y"?1:0;}
+    });
+    if(!set)return null;
+    return pts>=5?"G":pts>=1?"Y":"R";
+  }
+  function dayS(log){
+    if(!log)return null;
+    if(log.p){var c=computeS(log.p);if(c)return c;}
+    return log.s||null;
+  }
+
   function earliestLog(){
-    var ks=Object.keys(data.logs).sort();
+    var ks=Object.keys(data.logs).filter(function(k){return dayS(data.logs[k]);}).sort();
     return ks.length?parseK(ks[0]):null;
   }
   function dayNumber(){
@@ -252,19 +330,19 @@
   }
   function logStreak(){
     var d=now();
-    if(!data.logs[key(d)])d=addD(d,-1);
+    if(!dayS(data.logs[key(d)]))d=addD(d,-1);
     var n=0;
-    while(data.logs[key(d)]){n++;d=addD(d,-1);}
+    while(dayS(data.logs[key(d)])){n++;d=addD(d,-1);}
     return n;
   }
   function weekEntries(mon){
     var arr=[];
-    for(var i=0;i<7;i++){var d=addD(mon,i);arr.push({d:d,k:key(d),log:data.logs[key(d)]||null});}
+    for(var i=0;i<7;i++){var d=addD(mon,i);var lg=data.logs[key(d)]||null;arr.push({d:d,k:key(d),log:lg,s:dayS(lg)});}
     return arr;
   }
   function score(entries){
     var g=0,y=0,r=0;
-    entries.forEach(function(e){if(e.log){if(e.log.s==="G")g++;else if(e.log.s==="Y")y++;else r++;}});
+    entries.forEach(function(e){if(e.s){if(e.s==="G")g++;else if(e.s==="Y")y++;else r++;}});
     return{g:g,y:y,r:r};
   }
 
@@ -280,6 +358,7 @@
   function render(){
     var t=now(),tK=key(t),yK=key(addD(t,-1));
     var tLog=data.logs[tK],yLog=data.logs[yK];
+    var tS=dayS(tLog),yS=dayS(yLog);
 
     $("tDay").textContent=String(dayNumber()).padStart(3,"0");
     $("tStreak").textContent=logStreak()+"D";
@@ -291,20 +370,31 @@
       setBanner("err","No permanent storage here","Logs vanish on reload in this view. Use the installed app: "+APP_URL);
     }else if(!lastSaveOk){
       setBanner("err","Save failed","Last log didn't persist. Tap again.");
-    }else if(tLog&&tLog.s==="R"&&yLog&&yLog.s==="R"){
+    }else if(tS==="R"&&yS==="R"){
       setBanner("crit","Two reds in a row","Chain rule broken. Tomorrow is a mandatory yellow — 30 minutes, non-negotiable.");
-    }else if(yLog&&yLog.s==="R"&&!tLog){
+    }else if(yS==="R"&&!tS){
       setBanner("warn","Yesterday was red","Rule 1: never two reds. Today is minimum yellow — one 25-min block.");
-    }else if(yLog&&yLog.s==="R"&&tLog&&tLog.s!=="R"){
-      setBanner("good","Bounce executed","Red → "+(tLog.s==="G"?"green":"yellow")+". That's the system working.");
+    }else if(yS==="R"&&tS&&tS!=="R"){
+      setBanner("good","Bounce executed","Red → "+(tS==="G"?"green":"yellow")+". That's the system working.");
     }
 
     $("dateName").textContent=DOW[t.getDay()]+" "+fmtShort(t);
-    $("logLabel").textContent=tLog?"Logged · tap to change":"Tap to log today";
 
-    document.querySelectorAll(".sbtn").forEach(function(btn){
-      btn.classList.toggle("on",!!tLog&&btn.dataset.s===tLog.s);
+    var m=$("mission");
+    if(yLog&&yLog.q){m.classList.add("show");$("missionText").textContent=yLog.q;}
+    else{m.classList.remove("show");}
+
+    document.querySelectorAll(".segs").forEach(function(grp){
+      var pk=grp.dataset.p;
+      var cur=tLog&&tLog.p?tLog.p[pk]:null;
+      grp.querySelectorAll(".seg").forEach(function(btn){
+        btn.classList.toggle("on",btn.dataset.v===cur);
+      });
     });
+
+    var bar=$("dayBar");
+    bar.className="daybar"+(tS?" "+tS:"");
+    bar.textContent=tS?("Day → "+(tS==="G"?"Green":tS==="Y"?"Yellow":"Red")):"Rate your three areas";
 
     var mon=monday(t);
     $("wkRange").textContent=fmtShort(mon)+" – "+fmtShort(addD(mon,6));
@@ -315,7 +405,7 @@
       c.className="cell";
       var isToday=e.k===tK;
       var isFuture=parseK(e.k)>t&&!isToday;
-      if(e.log){c.classList.add(e.log.s);c.textContent=e.log.s;}
+      if(e.s){c.classList.add(e.s);c.textContent=e.s;}
       else if(isFuture){c.classList.add("future");c.textContent="·";}
       else{c.textContent="–";}
       if(isToday)c.classList.add("today");
@@ -324,7 +414,7 @@
     var sc=score(entries);
     $("sG").textContent=sc.g+"G";$("sY").textContent=sc.y+"Y";$("sR").textContent=sc.r+"R";
     var midnight=new Date(t.getFullYear(),t.getMonth(),t.getDate());
-    var daysLeft=entries.filter(function(e){return !e.log&&parseK(e.k)>=midnight;}).length;
+    var daysLeft=entries.filter(function(e){return !e.s&&parseK(e.k)>=midnight;}).length;
     var chip=$("wkStatus");chip.className="statuschip";
     var firstLog=earliestLog();
     var partialWeek=firstLog&&firstLog>mon;
@@ -341,6 +431,7 @@
     var box=$("history");box.innerHTML="";
     var weeks={};
     Object.keys(data.logs).forEach(function(k){
+      if(!dayS(data.logs[k]))return;
       var m=key(monday(parseK(k)));
       if(m===key(currentMon))return;
       weeks[m]=true;
@@ -355,7 +446,7 @@
       var entries=weekEntries(mon);
       var sc=score(entries);
       var row=document.createElement("div");row.className="hrow";
-      var dots=entries.map(function(e){return '<span class="md '+(e.log?e.log.s:"")+'"></span>';}).join("");
+      var dots=entries.map(function(e){return '<span class="md '+(e.s||"")+'"></span>';}).join("");
       var pass=sc.g>=4&&sc.r<=1;
       var firstLog=earliestLog();
       var wasPartial=firstLog&&key(monday(firstLog))===mk&&firstLog>mon;
@@ -374,11 +465,22 @@
     var sc=score(entries);
     var em={G:"🟢",Y:"🟡",R:"🔴"};
     var out="ANTI-QUIT · W"+isoWeek(t)+" REVIEW ("+fmtShort(mon)+" – "+fmtShort(addD(mon,6))+")\n";
+    out+="format: day emoji [Body/School/Hustle]\n";
     entries.forEach(function(e){
       var d=parseK(e.k);
       var isFuture=d>t&&e.k!==key(t);
       out+=DOW[d.getDay()].toUpperCase().slice(0,2)+" "+String(d.getDate()).padStart(2,"0")+": ";
-      out+=e.log?em[e.log.s]:(isFuture?"·":"— not logged");
+      if(e.s){
+        out+=em[e.s];
+        if(e.log&&e.log.p){
+          out+=" ["+(e.log.p.b||"–")+"/"+(e.log.p.s||"–")+"/"+(e.log.p.h||"–")+"]";
+        }
+      }else{
+        out+=isFuture?"·":"— not logged";
+      }
+      if(e.log&&e.log.w){out+="\n   + win: "+e.log.w;}
+      if(e.log&&e.log.x){out+="\n   ! block: "+e.log.x;}
+      if(e.log&&e.log.q){out+="\n   ↳ next: "+e.log.q;}
       out+="\n";
     });
     out+="SCORE: "+sc.g+"G / "+sc.y+"Y / "+sc.r+"R (target ≥4G ≤1R)\n";
@@ -402,12 +504,37 @@
     setTimeout(function(){btn.textContent=normal;},2500);
   }
 
-  document.querySelectorAll(".sbtn").forEach(function(btn){
-    btn.addEventListener("click",async function(){
-      data.logs[key(now())]={s:btn.dataset.s};
-      await persist();
-      render();
+  /* ---------- events ---------- */
+  document.querySelectorAll(".segs").forEach(function(grp){
+    var pk=grp.dataset.p;
+    grp.querySelectorAll(".seg").forEach(function(btn){
+      btn.addEventListener("click",async function(){
+        var tK=key(now());
+        var log=data.logs[tK]||{};
+        log.p=log.p||{};
+        log.p[pk]=btn.dataset.v;
+        log.s=computeS(log.p);
+        data.logs[tK]=log;
+        await persist();
+        render();
+      });
     });
+  });
+
+  [["wInput","w"],["xInput","x"],["qInput","q"]].forEach(function(pair){
+    var el=$(pair[0]),fk=pair[1];
+    el.addEventListener("input",function(){
+      clearTimeout(qTimers[fk]);
+      var val=this.value;
+      qTimers[fk]=setTimeout(async function(){
+        var tK=key(now());
+        var log=data.logs[tK]||{};
+        log[fk]=val.trim().slice(0,120);
+        data.logs[tK]=log;
+        await persist();
+      },700);
+    });
+    el.addEventListener("blur",function(){render();});
   });
 
   $("copyBtn").addEventListener("click",async function(){
@@ -425,7 +552,7 @@
     if(!s)return;
     try{
       var p=JSON.parse(s);
-      if(p&&p.logs&&typeof p.logs==="object"){data=p;await persist();render();}
+      if(p&&p.logs&&typeof p.logs==="object"){data=p;await persist();render();syncQ();}
       else{alert("Invalid backup.");}
     }catch(e){alert("Invalid backup.");}
   });
@@ -435,12 +562,21 @@
     if(!confirm("Really sure? Every log will be gone."))return;
     await store.del();
     data={logs:{}};
+    syncQ();
     render();
   });
+
+  function syncQ(){
+    var tLog=data.logs[key(now())]||{};
+    $("wInput").value=tLog.w||"";
+    $("xInput").value=tLog.x||"";
+    $("qInput").value=tLog.q||"";
+  }
 
   (async function(){
     store.init();
     await load();
+    syncQ();
     $("splash").classList.add("hidden");
     $("app").classList.remove("hidden");
     render();
